@@ -1,0 +1,19 @@
+{
+  "name": "awtuploader",
+  "version": "1.0.0",
+  "description": "upload scrapped audio files",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anasqadrei/awtuploader.git"
+  },
+  "author": "Anas Qadrei",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/anasqadrei/awtuploader/issues"
+  },
+  "homepage": "https://github.com/anasqadrei/awtuploader"
+}
