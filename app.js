@@ -1,8 +1,51 @@
 var fs = require('fs');
 var ffmpeg = require('fluent-ffmpeg');
-
+var MongoClient = require('mongodb').MongoClient;
+var DB;
 var SOURCE_DIR = '../music_here';
 var UPLOADER_USER_ID = 9;   //ya lail ya ain
+
+function getMaxId(collection, cb){
+  DB.collection(collection).findOne({}, { _id: true }, { sort: [[ '_id', -1 ]] }, function(err, doc){
+    if (err) {
+      return cb(err);
+    }
+    else {
+      return cb(null, doc._id + 1);
+    }
+  });
+}
+
+function findOrInsertArtist(name, cb){
+  DB.collection('artists').findOne({ name: name }, { _id: true }, function(err, doc){
+    if (err) {
+      return cb(err);
+    }
+    else {
+      if (doc) {
+        return cb(null, doc._id);
+      }
+      else {
+        getMaxId('artists', function(err, newId){
+          if (err) {
+            return cb(err);
+          }
+          else {
+            var date = new Date();
+            DB.collection('artists').insert({ _id: newId, name: name, createdDate: date.toISOString(), commentsCount: 0 }, function(err, doc){
+              if (err) {
+                return cb(err);
+              }
+              else {
+                return cb(null, doc[0]._id);
+              }
+            });
+          }
+        });
+      }
+    }
+  });
+}
 
 function readMetadata(args, cb){
   ffmpeg.ffprobe(args.file, function(err, metadata){
@@ -39,10 +82,19 @@ function readMetadata(args, cb){
     console.log(hashtags);
 
     //insert artist
+    findOrInsertArtist(args.artistName, function(err, artistId){
+      if (err) {
+        console.log(err);
+        return cb(err);
+      }
+      else {
+        console.log(artistId);
 
-    //insert song
+        //insert song
 
-    return cb();
+        return cb();
+      }
+    });
   });
 }
 
@@ -53,7 +105,7 @@ function uploadFile(filePath, cb){
   var args = {
     file: filePath,
     songTitle: fileElements[5],
-    artistName: fileElements[3],
+    artistName: fileElements[3].replace('+', ' ').trim(),
     desc: fileElements[11],
     userId: UPLOADER_USER_ID
   }
@@ -69,7 +121,6 @@ function uploadFile(filePath, cb){
   if (fileElements[13]) {
     args.desc += ' #' + fileElements[13];   //check if # align with arabic
   }
-  //console.log(args);
 
   return readMetadata(args, function(){
     return cb();
@@ -117,7 +168,15 @@ function listFiles(cb){
 }
 
 console.log('starting ...');
-
-listFiles(function(){
-  console.log('done');
+MongoClient.connect('mongodb://anas:anas1234@localhost:27017/awtphase2', function(err, db) {
+  if(err) {
+    throw err;
+  }
+  else {
+    DB = db;
+    listFiles(function(){
+      db.close();
+      console.log('done');
+    });
+  }
 });

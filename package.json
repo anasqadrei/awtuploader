@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/anasqadrei/awtuploader",
   "dependencies": {
-    "fluent-ffmpeg": "~2.0.0-rc3"
+    "fluent-ffmpeg": "~2.0.0-rc3",
+    "mongodb": "~1.4.31"
   }
 }
