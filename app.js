@@ -1,9 +1,53 @@
 var fs = require('fs');
+var ffmpeg = require('fluent-ffmpeg');
 
 var SOURCE_DIR = '../music_here';
 var UPLOADER_USER_ID = 9;   //ya lail ya ain
 
+function readMetadata(args, cb){
+  ffmpeg.ffprobe(args.file, function(err, metadata){
+    if (err){
+      console.log(err);
+      return cb(err);
+    }
+    else {
+
+      //validate file (audio and mp3)
+      var validFile = false;
+      var metadataIndex = -1;
+      if (metadata.streams && metadata.format) {
+        for (var i = 0; i < metadata.streams.length; i++) {
+          if (metadata.streams[i].codec_type === 'audio' && metadata.streams[i].codec_name === 'mp3') {
+            metadataIndex = i;
+            validFile = true;
+            break;
+          }
+        }
+      }
+      if (!validFile) {
+        console.log('Invalid File');
+        return cb(new Error('Invalid File!'))
+      }
+    }
+
+
+    //find hashtags in the desc
+    var hashtags = args.desc.match(/#\S+/g);
+    for (var i = 0; hashtags && i < hashtags.length; i++) {
+      hashtags[i] = hashtags[i].replace(/#/g, '');
+    }
+    console.log(hashtags);
+
+    //insert artist
+
+    //insert song
+
+    return cb();
+  });
+}
+
 function uploadFile(filePath, cb){
+  console.log(filePath);
   //[artist name]-[song title]-[genre]-[album]-[description]-[year]-[filename].ext
   var fileElements = filePath.match(/(.+)(\/\[)(.+)(\]-\[)(.+)(\]-\[)(.*)(\]-\[)(.*)(\]-\[)(.*)(\]-\[)(.*)(\]-\[)(.+)(\])(\.mp3)$/);
   var args = {
@@ -25,9 +69,11 @@ function uploadFile(filePath, cb){
   if (fileElements[13]) {
     args.desc += ' #' + fileElements[13];   //check if # align with arabic
   }
+  //console.log(args);
 
-  console.log(args);
-  return cb();
+  return readMetadata(args, function(){
+    return cb();
+  });
 }
 
 function processFile(file, filesList, cb){
