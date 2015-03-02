@@ -4,6 +4,8 @@ var aws = require('aws-sdk');
 var MongoClient = require('mongodb').MongoClient;
 var DB;
 var SOURCE_DIR = '../music_here';
+var SUCCESS_DIR = '../music_here_success';
+var FAIL_DIR = '../music_here_fail';
 var UPLOADER_USER_ID = 9;   //ya lail ya ain
 var FILE_SUFFIX = '.new.mp3';
 
@@ -59,7 +61,7 @@ function findOrInsertArtist(name, cb){
 function readMetadata(args, cb){
   ffmpeg.ffprobe(args.file, function(err, metadata){
     if (err){
-      console.log(err);
+      //console.log(err);
       return cb(err);
     }
     else {
@@ -207,8 +209,8 @@ function uploadFile(filePath, cb){
   //song title and artist
   args.desc += ' #' + args.songTitle.replace(/\s/g, '_') + ' #' + args.artistName.replace(/\s/g, '_');
 
-  return readMetadata(args, function(){
-    return cb();
+  return readMetadata(args, function(err){
+    return cb(err);
   });
 }
 
@@ -216,25 +218,34 @@ function processFile(file, filesList, cb){
   if (file) {
     fs.stat(SOURCE_DIR + '/' + file, function(err, stats){
       if (err) {
-        console.log(err);
-        throw err;
+        //console.log(err);
+        //throw err;
+        return cb(err);
       }
       else {
         if (stats.isFile()) {
-          uploadFile(SOURCE_DIR + '/' + file, function(){
-            return processFile(filesList.shift(), filesList, function(){
-              return cb();
+          uploadFile(SOURCE_DIR + '/' + file, function(err){
+            if (err) {
+              console.log('XXXXXXXXXXXX');
+              console.log(err);
+              fs.renameSync(SOURCE_DIR + '/' + file, FAIL_DIR + '/' + file);
+            }
+            else {
+              fs.renameSync(SOURCE_DIR + '/' + file, SUCCESS_DIR + '/' + file);
+            }
+            return processFile(filesList.shift(), filesList, function(err){
+              return cb(err);
             });
           });
         }
         else {
-          return cb();
+          return cb(err);
         }
       }
     });
   }
   else {
-    return cb();
+    return cb(err);
   }
 }
 
@@ -245,8 +256,8 @@ function listFiles(cb){
       throw err;
     }
     else {
-      processFile(files.shift(), files, function(){
-        return cb();
+      processFile(files.shift(), files, function(err){
+        return cb(err);
       });
     }
   });
